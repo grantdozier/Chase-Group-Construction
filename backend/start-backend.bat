@@ -12,6 +12,9 @@ REM   3) Install dependencies from backend/requirements.txt into that venv.
 REM   4) Run "python -m playwright install" to ensure browsers are available.
 REM   5) Start the FastAPI server as main:app on http://localhost:8000.
 
+set SCRIPT_DIR=%~dp0
+cd /d "%SCRIPT_DIR%"
+
 REM Prefer py launcher if available
 for %%P in (py python) do (
     where %%P >nul 2>&1
@@ -21,6 +24,13 @@ for %%P in (py python) do (
     )
 )
 :found_python
+
+if not defined PYTHON (
+    echo Could not find a Python interpreter on this system.
+    echo Please install Python 3 and make sure "py" or "python" is on your PATH.
+    pause
+    exit /b 1
+)
 
 echo Using Python interpreter: %PYTHON%
 
@@ -69,5 +79,9 @@ echo.
 
 REM Run from within backend/, so we use main:app instead of backend.main:app
 python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+
+echo.
+echo Backend process has exited. Press any key to close this window.
+pause
 
 endlocal
