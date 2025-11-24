@@ -2,46 +2,32 @@
 setlocal ENABLEDELAYEDEXPANSION
 
 REM Simple starter for the Local RAG + Workflow backend on Windows.
-REM Usage for your client:
-REM   - Copy the ENTIRE project folder (containing "backend" and "frontend") onto their machine.
+REM Intended usage for you and your client:
+REM   - Copy the ENTIRE project folder (containing the "backend" directory) to their machine.
 REM   - Open the backend\ folder and double-click this start-backend.bat.
 REM This script will:
-REM   1) Locate the repo root (parent of backend/).
+REM   1) Work entirely from the backend/ folder (no assumptions about git or parent folders).
 REM   2) Create backend/.venv if needed.
-REM   3) Reinstall backend/requirements.txt into that venv every time (keeps deps up to date).
+REM   3) Install dependencies from backend/requirements.txt into that venv.
 REM   4) Run "python -m playwright install" to ensure browsers are available.
-REM   5) Start the FastAPI server as backend.main:app on http://localhost:8000.
+REM   5) Start the FastAPI server as main:app on http://localhost:8000.
 
-set SCRIPT_DIR=%~dp0
-
-REM REPO_ROOT is the parent of backend/ (where the git repo root lives)
-pushd "%SCRIPT_DIR%.." >nul
-set REPO_ROOT=%CD%
-popd >nul
-
-cd /d "%REPO_ROOT%"
-
-REM Detect Python launcher or python.exe
-where py >nul 2>nul
-if %ERRORLEVEL%==0 (
-    set PYTHON=py
-) else (
-    where python >nul 2>nul
-    if %ERRORLEVEL%==0 (
-        set PYTHON=python
-    ) else (
-        echo Could not find Python on this system. Please install Python 3.10+ from https://www.python.org/downloads/windows/ and try again.
-        pause
-        exit /b 1
+REM Prefer py launcher if available
+for %%P in (py python) do (
+    where %%P >nul 2>&1
+    if !ERRORLEVEL! EQU 0 (
+        set PYTHON=%%P
+        goto :found_python
     )
 )
+:found_python
 
 echo Using Python interpreter: %PYTHON%
 
-REM Create virtual environment in backend/.venv if it does not exist
-if not exist backend\.venv (
-    echo Creating virtual environment in backend\.venv ...
-    %PYTHON% -m venv backend\.venv
+REM Create virtual environment under backend/.venv (relative to this folder)
+if not exist .venv (
+    echo Creating virtual environment in .venv ...
+    %PYTHON% -m venv .venv
     if %ERRORLEVEL% NEQ 0 (
         echo Failed to create virtual environment.
         pause
@@ -49,8 +35,8 @@ if not exist backend\.venv (
     )
 )
 
-REM Activate venv
-call backend\.venv\Scripts\activate.bat
+echo Activating virtual environment...
+call .venv\Scripts\activate.bat
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to activate virtual environment.
     pause
@@ -59,12 +45,13 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo Installing backend dependencies (this may take a minute)...
 python -m pip install --upgrade pip >nul
-if not exist backend\requirements.txt (
-    echo Could not find backend\requirements.txt. Make sure you copied the ENTIRE project folder (including backend and frontend).
+if not exist requirements.txt (
+    echo Could not find requirements.txt in the backend folder.
+    echo Make sure you copied the ENTIRE project folder (including backend and frontend).
     pause
     exit /b 1
 )
-python -m pip install -r backend\requirements.txt
+python -m pip install -r requirements.txt
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to install dependencies from backend\requirements.txt
     pause
@@ -80,6 +67,7 @@ echo Leave this window open while you use the web interface.
 echo Press CTRL+C to stop the server.
 echo.
 
-python -m uvicorn backend.main:app --host 0.0.0.0 --port 8000 --reload
+REM Run from within backend/, so we use main:app instead of backend.main:app
+python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload
 
 endlocal
