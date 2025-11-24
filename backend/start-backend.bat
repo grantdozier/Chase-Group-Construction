@@ -2,12 +2,19 @@
 setlocal ENABLEDELAYEDEXPANSION
 
 REM Simple starter for the Local RAG backend on Windows.
-REM 1) Creates a .venv in this folder if needed
-REM 2) Installs dependencies from backend/requirements.txt
-REM 3) Runs the FastAPI server with uvicorn on http://localhost:8000
+REM 1) Assumes this script lives in the backend/ folder of the repo.
+REM 2) Creates a .venv in backend/ if needed.
+REM 3) Installs dependencies from backend/requirements.txt.
+REM 4) Runs the FastAPI server as backend.main:app on http://localhost:8000.
 
 set SCRIPT_DIR=%~dp0
-cd /d "%SCRIPT_DIR%"
+
+REM REPO_ROOT is the parent of backend/ (where the git repo root lives)
+pushd "%SCRIPT_DIR%.." >nul
+set REPO_ROOT=%CD%
+popd >nul
+
+cd /d "%REPO_ROOT%"
 
 REM Detect Python launcher or python.exe
 where py >nul 2>nul
@@ -26,10 +33,10 @@ if %ERRORLEVEL%==0 (
 
 echo Using Python interpreter: %PYTHON%
 
-REM Create virtual environment if it does not exist
-if not exist .venv (
-    echo Creating virtual environment in .venv ...
-    %PYTHON% -m venv .venv
+REM Create virtual environment in backend/.venv if it does not exist
+if not exist backend\.venv (
+    echo Creating virtual environment in backend\.venv ...
+    %PYTHON% -m venv backend\.venv
     if %ERRORLEVEL% NEQ 0 (
         echo Failed to create virtual environment.
         pause
@@ -38,7 +45,7 @@ if not exist .venv (
 )
 
 REM Activate venv
-call .venv\Scripts\activate.bat
+call backend\.venv\Scripts\activate.bat
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to activate virtual environment.
     pause
@@ -47,7 +54,12 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo Installing backend dependencies (this may take a minute)...
 python -m pip install --upgrade pip >nul
-python -m pip install -r requirements.txt
+if not exist backend\requirements.txt (
+    echo Could not find backend\requirements.txt. Make sure you downloaded the entire project folder from GitHub.
+    pause
+    exit /b 1
+)
+python -m pip install -r backend\requirements.txt
 if %ERRORLEVEL% NEQ 0 (
     echo Failed to install dependencies from requirements.txt
     pause
