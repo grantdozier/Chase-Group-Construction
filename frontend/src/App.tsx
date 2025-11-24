@@ -95,9 +95,10 @@ const App: React.FC = () => {
     setLoading(true);
 
     try {
+      const history = [...messages, userMessage].slice(-5).map((m) => ({ role: m.role, content: m.content }));
       const data = (await backendFetch('/query', {
         method: 'POST',
-        body: JSON.stringify({ query: content, top_k: 8, rerank_k: 20 }),
+        body: JSON.stringify({ query: content, top_k: 8, rerank_k: 20, history }),
       })) as QueryResponse;
 
       const assistantMessage: ChatMessage = {

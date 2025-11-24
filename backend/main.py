@@ -70,6 +70,11 @@ async def query(req: QueryRequest) -> QueryResponse:
     if _rag_engine is None or not _root_paths:
         raise HTTPException(status_code=400, detail="Backend not configured. Call /config first.")
 
-    answer, context_items = _rag_engine.query(req.query, top_k=req.top_k, rerank_k=req.rerank_k)
+    answer, context_items = _rag_engine.query(
+        req.query,
+        history=[t.model_dump() for t in (req.history or [])],
+        top_k=req.top_k,
+        rerank_k=req.rerank_k,
+    )
     context_chunks = [DocumentChunk(**item) for item in context_items]
     return QueryResponse(answer=answer, context=context_chunks)

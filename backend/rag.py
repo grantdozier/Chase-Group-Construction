@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Iterable
+from typing import List, Iterable, Optional, Dict
 
 import chromadb
 import requests
@@ -115,7 +115,7 @@ class LocalRAGEngine:
             self.collection.upsert(ids=ids, documents=texts, metadatas=metadatas)
         return len(ids)
 
-    def query(self, query: str, top_k: int = 8, rerank_k: int = 20) -> tuple[str, List[dict]]:
+    def query(self, query: str, history: Optional[List[Dict[str, str]]] = None, top_k: int = 8, rerank_k: int = 20) -> tuple[str, List[dict]]:
         # Basic retrieval from Chroma
         results = self.collection.query(query_texts=[query], n_results=top_k)
         docs = results["documents"][0]
@@ -135,12 +135,27 @@ class LocalRAGEngine:
             })
 
         prompt = self._build_prompt(query, context_snippets)
+
+        history_msgs: List[Dict[str, str]] = []
+        for turn in (history or [])[-5:]:  # only last 5 messages
+            role = turn.get("role", "user")
+            content = turn.get("content", "")
+            if not content:
+                continue
+            history_msgs.append({"role": role, "content": content})
+
+        messages: List[Dict[str, str]] = [
+            {
+                "role": "system",
+                "content": "You are a RAG assistant. Use the conversation history and the retrieved context to answer. Answer based ONLY on the provided context, and cite file paths explicitly.",
+            },
+            *history_msgs,
+            {"role": "user", "content": prompt},
+        ]
+
         answer = self._openai.chat(
             model="gpt-4.1-mini",
-            messages=[
-                {"role": "system", "content": "You are a RAG assistant. Answer based ONLY on the provided context. Cite file paths explicitly."},
-                {"role": "user", "content": prompt},
-            ],
+            messages=messages,
         )
         return answer, context_items
 
@@ -162,4 +177,9 @@ class LocalRAGEngine:
 
     def _build_prompt(self, query: str, context_snippets: List[str]) -> str:
         context_block = "\n\n".join(f"[Document {i+1}]\n" + snippet for i, snippet in enumerate(context_snippets))
-        return f"Context documents:\n\n{context_block}\n\nUser question: {query}\n\nAnswer based only on the context above. If the answer is not contained there, say you don't know."
+        return (
+            "Context documents (retrieved from the user's files):\n\n"
+            f"{context_block}\n\n"
+            f"Current user question: {query}\n\n"
+            "Use both the conversation history and the context above. If the answer is not contained there, say you don't know."
+        )

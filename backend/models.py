@@ -13,10 +13,16 @@ class IndexRequest(BaseModel):
     exclude_globs: Optional[List[str]] = None
 
 
+class ChatTurn(BaseModel):
+    role: str  # "user" or "assistant"
+    content: str
+
+
 class QueryRequest(BaseModel):
     query: str
     top_k: int = 8
     rerank_k: int = 20
+    history: Optional[List[ChatTurn]] = None
 
 
 class DocumentChunk(BaseModel):
