@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { Sidebar, BackendConfig } from './components/Sidebar';
 import { ChatPanel, ChatMessage } from './components/ChatPanel';
 import { SourcesPanel, SourceItem } from './components/SourcesPanel';
+import { WorkflowPage } from './components/WorkflowPage';
 
 interface QueryResponse {
   answer: string;
@@ -11,10 +12,20 @@ interface QueryResponse {
 const defaultBackendUrl = 'http://localhost:8000';
 
 const App: React.FC = () => {
-  const [config, setConfig] = useState<BackendConfig>({
-    backendUrl: defaultBackendUrl,
-    rootPaths: [''],
-    apiKey: '',
+  const [config, setConfig] = useState<BackendConfig>(() => {
+    if (typeof window !== 'undefined') {
+      const storedKey = window.localStorage.getItem('local_rag_openai_key') || '';
+      return {
+        backendUrl: defaultBackendUrl,
+        rootPaths: [''],
+        apiKey: storedKey,
+      };
+    }
+    return {
+      backendUrl: defaultBackendUrl,
+      rootPaths: [''],
+      apiKey: '',
+    };
   });
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [sources, setSources] = useState<SourceItem[]>([]);
@@ -23,6 +34,7 @@ const App: React.FC = () => {
   const [isIndexing, setIsIndexing] = useState(false);
   const [statusText, setStatusText] = useState<string | undefined>();
   const [loading, setLoading] = useState(false);
+  const [activeModule, setActiveModule] = useState<'rag' | 'workflow'>('rag');
 
   const backendFetch = useCallback(
     async (path: string, options?: RequestInit) => {
@@ -135,31 +147,72 @@ const App: React.FC = () => {
     pingHealth();
   }, [backendFetch]);
 
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('local_rag_openai_key', config.apiKey || '');
+    }
+  }, [config.apiKey]);
+
   return (
     <div className="h-screen w-screen flex bg-slate-950 text-slate-50">
-      <Sidebar
-        config={config}
-        onChange={setConfig}
-        onConfigure={handleConfigure}
-        onIndex={handleIndex}
-        isConfigured={isConfigured}
-        isIndexing={isIndexing}
-        statusText={statusText}
-      />
+      {activeModule === 'rag' && (
+        <Sidebar
+          config={config}
+          onChange={setConfig}
+          onConfigure={handleConfigure}
+          onIndex={handleIndex}
+          isConfigured={isConfigured}
+          isIndexing={isIndexing}
+          statusText={statusText}
+        />
+      )}
       <main className="flex-1 flex flex-col">
+        <div className="border-b border-slate-800 bg-slate-950/80 px-4 py-2 flex items-center gap-2 text-xs">
+          <button
+            type="button"
+            className={`px-3 py-1 rounded ${
+              activeModule === 'rag'
+                ? 'bg-sky-600 text-white'
+                : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+            }`}
+            onClick={() => setActiveModule('rag')}
+          >
+            Local RAG Assistant
+          </button>
+          <button
+            type="button"
+            className={`px-3 py-1 rounded ${
+              activeModule === 'workflow'
+                ? 'bg-sky-600 text-white'
+                : 'bg-slate-900 text-slate-300 hover:bg-slate-800'
+            }`}
+            onClick={() => setActiveModule('workflow')}
+          >
+            Real Estate Workflow
+          </button>
+        </div>
         <div className="flex flex-1">
-          <div className="flex-1">
-            <ChatPanel
-              messages={messages}
-              input={input}
-              setInput={setInput}
-              onSend={handleSend}
-              loading={loading}
-            />
-          </div>
-          <div className="w-80 border-l border-slate-800">
-            <SourcesPanel sources={sources} />
-          </div>
+          {activeModule === 'rag' && (
+            <>
+              <div className="flex-1">
+                <ChatPanel
+                  messages={messages}
+                  input={input}
+                  setInput={setInput}
+                  onSend={handleSend}
+                  loading={loading}
+                />
+              </div>
+              <div className="w-80 border-l border-slate-800">
+                <SourcesPanel sources={sources} />
+              </div>
+            </>
+          )}
+          {activeModule === 'workflow' && (
+            <div className="flex-1">
+              <WorkflowPage backendFetch={backendFetch} />
+            </div>
+          )}
         </div>
       </main>
     </div>

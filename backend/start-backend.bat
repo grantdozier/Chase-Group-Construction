@@ -1,11 +1,16 @@
 @echo off
 setlocal ENABLEDELAYEDEXPANSION
 
-REM Simple starter for the Local RAG backend on Windows.
-REM 1) Assumes this script lives in the backend/ folder of the repo.
-REM 2) Creates a .venv in backend/ if needed.
-REM 3) Installs dependencies from backend/requirements.txt.
-REM 4) Runs the FastAPI server as backend.main:app on http://localhost:8000.
+REM Simple starter for the Local RAG + Workflow backend on Windows.
+REM Usage for your client:
+REM   - Copy the ENTIRE project folder (containing "backend" and "frontend") onto their machine.
+REM   - Open the backend\ folder and double-click this start-backend.bat.
+REM This script will:
+REM   1) Locate the repo root (parent of backend/).
+REM   2) Create backend/.venv if needed.
+REM   3) Reinstall backend/requirements.txt into that venv every time (keeps deps up to date).
+REM   4) Run "python -m playwright install" to ensure browsers are available.
+REM   5) Start the FastAPI server as backend.main:app on http://localhost:8000.
 
 set SCRIPT_DIR=%~dp0
 
@@ -55,16 +60,19 @@ if %ERRORLEVEL% NEQ 0 (
 echo Installing backend dependencies (this may take a minute)...
 python -m pip install --upgrade pip >nul
 if not exist backend\requirements.txt (
-    echo Could not find backend\requirements.txt. Make sure you downloaded the entire project folder from GitHub.
+    echo Could not find backend\requirements.txt. Make sure you copied the ENTIRE project folder (including backend and frontend).
     pause
     exit /b 1
 )
 python -m pip install -r backend\requirements.txt
 if %ERRORLEVEL% NEQ 0 (
-    echo Failed to install dependencies from requirements.txt
+    echo Failed to install dependencies from backend\requirements.txt
     pause
     exit /b 1
 )
+
+echo Ensuring Playwright browsers are installed (this may run only the first time)...
+python -m playwright install
 
 echo.
 echo Backend is starting on http://localhost:8000

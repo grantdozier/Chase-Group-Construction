@@ -6,9 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .models import ConfigRequest, IndexRequest, QueryRequest, QueryResponse, DocumentChunk
 from .rag import LocalRAGEngine
+from .workflow import router as workflow_router
 
 
 app = FastAPI(title="Local RAG Backend", version="0.1.0")
+
+app.include_router(workflow_router)
 
 app.add_middleware(
     CORSMiddleware,

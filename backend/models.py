@@ -1,5 +1,6 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
+from datetime import datetime
 
 
 class ConfigRequest(BaseModel):
@@ -37,3 +38,34 @@ class DocumentChunk(BaseModel):
 class QueryResponse(BaseModel):
     answer: str
     context: List[DocumentChunk]
+
+
+class WorkflowStepData(BaseModel):
+    step_id: str
+    data: Dict[str, Any] = {}
+
+
+class WorkflowRun(BaseModel):
+    id: str
+    label: str
+    address: Optional[str] = None
+    created_at: datetime
+    updated_at: datetime
+    status: str = "in_progress"  # e.g. in_progress, completed
+    steps: List[WorkflowStepData] = []
+
+
+class WorkflowCreateRequest(BaseModel):
+    label: str
+    address: Optional[str] = None
+
+
+class SiteCredential(BaseModel):
+    site: str
+    username: str
+    password: str
+
+
+class CredentialUpdateRequest(BaseModel):
+    username: str
+    password: str
