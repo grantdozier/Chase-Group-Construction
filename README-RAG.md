@@ -9,7 +9,7 @@ The **browser UI never directly reads your filesystem or your API key**. It only
 
 ## High-Level Architecture
 
-- GitHub Pages hosts a static React UI at e.g. `https://<your-user>.github.io/<repo>/`.
+- GitHub Pages hosts a static React UI at e.g. `https://<your-user>.github.io/chase-group-construction/`.
 - On your machine, you run a local backend (FastAPI) on `http://localhost:8000` that:
   - Accepts a list of root folders to index (your code, notes, docs, etc.).
   - Builds/refreshes a **ChromaDB** persistent store under `~/.local_rag_store`.
@@ -47,7 +47,7 @@ You only need to do two things:
    - Leave this window open while you use the app.
 
 2. **Open the web interface**
-   - Visit the GitHub Pages URL (provided to you, e.g. `https://<your-user>.github.io/Chase-Construction-Group/`).
+   - Visit the GitHub Pages URL (provided to you, e.g. `https://<your-user>.github.io/chase-group-construction/`).
    - In the left sidebar:
      - Make sure **Backend URL** is `http://localhost:8000`.
      - Add one or more **Root Paths** (folders with your files).
