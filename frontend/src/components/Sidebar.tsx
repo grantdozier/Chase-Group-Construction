@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef } from 'react';
 
 export interface BackendConfig {
   backendUrl: string;
@@ -25,6 +25,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isIndexing,
   statusText,
 }) => {
+  const folderInputRef = useRef<HTMLInputElement | null>(null);
   const updateField = (field: keyof BackendConfig, value: string | string[]) => {
     onChange({ ...config, [field]: value } as BackendConfig);
   };
@@ -45,7 +46,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside className="w-80 bg-slate-900 border-r border-slate-800 flex flex-col p-4 gap-4">
+    <aside className="w-72 border-r border-slate-800 bg-slate-950/80 flex flex-col p-4 gap-4">
       <div>
         <h1 className="text-lg font-semibold mb-1">Local RAG Assistant</h1>
         <p className="text-xs text-slate-400">Configure your local backend and index your files.</p>
@@ -114,12 +115,57 @@ export const Sidebar: React.FC<SidebarProps> = ({
           className="w-full py-1 rounded bg-emerald-600 hover:bg-emerald-500 disabled:bg-slate-700 disabled:text-slate-400"
           type="button"
           onClick={onIndex}
-          disabled={!isConfigured || isIndexing}
+          disabled={isIndexing || !isConfigured}
         >
           {isIndexing ? 'Indexing…' : 'Index / Refresh'}
         </button>
-        {statusText && <p className="text-[11px] text-slate-400 mt-1">{statusText}</p>}
+
+        <div className="pt-2 border-t border-slate-800 mt-2 space-y-1">
+          <input
+            ref={folderInputRef}
+            type="file"
+            multiple
+            // @ts-ignore - webkitdirectory is not in the standard type defs
+            webkitdirectory="true"
+            className="hidden"
+            onChange={async (e) => {
+              const files = e.target.files;
+              if (!files || files.length === 0) return;
+              try {
+                const form = new FormData();
+                Array.from(files).forEach((file) => {
+                  form.append('files', file, (file as any).webkitRelativePath || file.name);
+                });
+                await fetch(`${config.backendUrl}/upload_and_index`, {
+                  method: 'POST',
+                  body: form,
+                });
+                // Trigger a status update by re-calling configure so the
+                // user sees that the backend is alive.
+                onConfigure();
+              } catch (err) {
+                // eslint-disable-next-line no-console
+                console.error('Folder upload failed', err);
+              } finally {
+                // reset so selecting the same folder again still fires change
+                e.target.value = '';
+              }
+            }}
+          />
+          <button
+            type="button"
+            className="w-full py-1 rounded bg-slate-900 hover:bg-slate-800 text-[11px] border border-slate-700"
+            onClick={() => folderInputRef.current?.click()}
+          >
+            Choose folder (upload files)
+          </button>
+          <p className="text-[10px] text-slate-500">
+            This uploads a copy of files in the selected folder to the local backend
+            and indexes them for RAG. Use for quick experiments.
+          </p>
+        </div>
       </div>
+      {statusText && <p className="text-[11px] text-slate-400 mt-1">{statusText}</p>}
     </aside>
   );
 };

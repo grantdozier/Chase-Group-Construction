@@ -382,12 +382,62 @@ export const WorkflowPage: React.FC<WorkflowPageProps> = ({ backendFetch }) => {
                 {stepDefinitions.map((step) => {
                   const data = getStepData(step.id);
                   const value = (data[step.field] as string) || '';
+
+                  const structuredItems: { label: string; key: string }[] = [];
+                  if (step.id === 'beacon_tax') {
+                    structuredItems.push(
+                      { label: 'Owner', key: 'owner' },
+                      { label: 'Parcel #', key: 'parcel_id' },
+                      { label: 'Acreage', key: 'acreage' },
+                      { label: 'Assessed Value', key: 'value' },
+                    );
+                  } else if (step.id === 'secretary_of_state') {
+                    structuredItems.push(
+                      { label: 'Registered Agent', key: 'registered_agent' },
+                      { label: 'Agent Address', key: 'registered_office_address' },
+                      { label: 'Status', key: 'status' },
+                      { label: 'Officers', key: 'officers' },
+                    );
+                  }
+
+                  // Show the structured panel whenever we have *any* of these keys,
+                  // even if values are empty strings or arrays. This makes it
+                  // obvious what the backend attempted to fill.
+                  const hasStructured = structuredItems.some((item) => Object.prototype.hasOwnProperty.call(data, item.key));
+
                   return (
                     <div key={step.id} className="border border-slate-800 rounded bg-slate-950/40 p-3 flex flex-col gap-2">
                       <div>
                         <h4 className="text-xs font-semibold text-slate-100 mb-1">{step.title}</h4>
                         <p className="text-[11px] text-slate-400">{step.description}</p>
                       </div>
+
+                      {hasStructured && (
+                        <div className="rounded border border-slate-800 bg-slate-950/70 px-2 py-1 text-[11px] space-y-0.5">
+                          {structuredItems.map((item) => {
+                            const v = data[item.key];
+                            if (item.key === 'officers' && Array.isArray(v)) {
+                              return (
+                                <div key={item.key}>
+                                  <span className="font-semibold">Officers:</span>
+                                  <ul className="list-disc list-inside ml-2">
+                                    {v.map((row: any, idx: number) => (
+                                      <li key={idx}>{String(row)}</li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div key={item.key} className="flex justify-between gap-2">
+                                <span className="font-semibold text-slate-200">{item.label}:</span>
+                                <span className="text-slate-100 text-right break-words">{v !== undefined && v !== null && String(v).length ? String(v) : '—'}</span>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
+
                       <textarea
                         className="w-full rounded bg-slate-900 border border-slate-700 px-2 py-1 text-xs min-h-[80px] resize-vertical"
                         value={value}
